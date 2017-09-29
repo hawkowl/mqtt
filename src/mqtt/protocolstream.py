@@ -4,6 +4,10 @@ import bitstruct
 
 from enum import IntEnum
 
+class ParseFailure(ValueError):
+    pass
+
+
 class PacketType(IntEnum):
     CONNECT = 1
     CONNACK = 2
@@ -32,32 +36,37 @@ def parse_next_packet(data):
     packet_type, flag1, flag2, flag3, flag4 = bitstruct.unpack('u4b1b1b1b1', data[0:1])
     length = None
 
-    if data[1:2] == 0xFF:
-        # Above 128
-        if data[2:3] == 0xFF:
-            # Above 16383
-            if data[3:4] == 0xFF:
-                # Above 2097151
-                length = 'u'
-        else:
-            length = bitstruct.unpack('u16', data[1:3])
-            bit_chop = 2
+    seek_point = 0
+    seek_multiplier = 1
+    packet_length = 0
+    encoded_byte = -1
 
-    else:
-        length, = bitstruct.unpack('u8', data[1:2])
-        bit_chop = 1
+    while (encoded_byte & 128) != 0:
 
+        seek_point += 1
 
-    if len(data) < 1 + bit_chop + length:
+        if len(data) < 1 + seek_point:
+            # Not enough data
+            return None, data
+
+        encoded_byte, = bitstruct.unpack('u8', data[seek_point:seek_point+1])
+
+        packet_length += (encoded_byte & 127) * seek_multiplier
+        seek_multiplier = seek_multiplier * 128
+
+        if seek_multiplier > 128 * 128 * 128:
+            raise ParseFailure()
+
+    if len(data) < 1 + seek_point + packet_length:
         # Not the whole packet yet
         return None, data
 
     packet = Packet(
         packet_type=PacketType(packet_type),
         flags = (flag1, flag2, flag3, flag4),
-        body = data[1 + bit_chop:length])
+        body = data[1 + seek_point:packet_length])
 
-    data = data[1 + bit_chop + length:]
+    data = data[1 + seek_point + packet_length:]
 
     return packet, data
 
