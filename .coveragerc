@@ -1,0 +1,15 @@
+[run]
+branch = True
+parallel = True
+source = mqtt
+
+[paths]
+source=
+   src/mqtt
+   .tox/*/lib/python*/site-packages/mqtt
+   .tox/*/Lib/site-packages/mqtt
+   .tox/pypy*/site-packages/mqtt
+
+[report]
+precision = 2
+ignore_errors = True

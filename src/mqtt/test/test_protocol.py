@@ -46,6 +46,7 @@ class PacketParsingTests(TestCase):
     def test_connect_packet_basic(self):
 
         packets, remaining = parse(CONNECT_PACKET)
-        connect_packet = packets[0].packet
+        connect = packets[0].packet
 
-        print(connect_packet)
+        self.assertEqual(connect.keep_alive, 60)
+        self.assertEqual(connect.client_identifier, "mosqsub|18215-medina.")
