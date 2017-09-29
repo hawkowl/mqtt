@@ -1,27 +1,28 @@
-
 import attr
 import bitstruct
 
-from enum import IntEnum
-
-class ParseFailure(ValueError):
-    pass
-
-
-class PacketType(IntEnum):
-    CONNECT = 1
-    CONNACK = 2
+from .packet import PacketType, parse_into_packet, ParseFailure
 
 
 @attr.s
-class Packet(object):
+class Frame(object):
 
     packet_type = attr.ib()
     flags = attr.ib()
     body = attr.ib()
+    _packet = attr.ib(default=None)
+
+    @property
+    def packet(self):
+        if self._packet:
+            return self._packet
+        else:
+            self._packet = parse_into_packet(self.packet_type,
+                                             self.flags, self.body)
+            return self._packet
 
 
-def parse_next_packet(data):
+def parse_next_frame(data):
     """
     Parse the next packet from this MQTT data stream.
     """
@@ -61,24 +62,24 @@ def parse_next_packet(data):
         # Not the whole packet yet
         return None, data
 
-    packet = Packet(
+    frame = Frame(
         packet_type=PacketType(packet_type),
         flags = (flag1, flag2, flag3, flag4),
         body = data[1 + seek_point:packet_length])
 
     data = data[1 + seek_point + packet_length:]
 
-    return packet, data
+    return frame, data
 
 
 def parse(data):
 
-    packets = []
+    frames = []
 
     while True:
-        packet, data = parse_next_packet(data)
+        frame, data = parse_next_frame(data)
 
-        if packet:
-            packets.append(packet)
+        if frame:
+            frames.append(frame)
         else:
-            return packets, data
+            return frames, data
