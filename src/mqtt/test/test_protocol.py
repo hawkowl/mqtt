@@ -1,6 +1,6 @@
 from unittest import TestCase
 
-from mqtt.protocolstream import parse
+from mqtt.protocolstream import parse, PacketType
 
 
 CONNECT_PACKET = bytes((
@@ -18,4 +18,13 @@ class StreamParsingTests(TestCase):
         packets, remaining = parse(CONNECT_PACKET)
 
         self.assertEqual(len(packets), 1)
+        self.assertEqual(packets[0].packet_type, PacketType.CONNECT)
         self.assertEqual(remaining, b'')
+
+    def test_incomplete_packet(self):
+
+        packets, remaining = parse(CONNECT_PACKET + CONNECT_PACKET[0:5])
+
+        self.assertEqual(len(packets), 1)
+        self.assertEqual(packets[0].packet_type, PacketType.CONNECT)
+        self.assertEqual(remaining, CONNECT_PACKET[0:5])
