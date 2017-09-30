@@ -26,7 +26,6 @@ def parse_next_frame(data):
     """
     Parse the next packet from this MQTT data stream.
     """
-
     if not data:
         return None, b''
 
@@ -37,6 +36,7 @@ def parse_next_frame(data):
     packet_type, flag1, flag2, flag3, flag4 = bitstruct.unpack('u4b1b1b1b1', data[0:1])
     length = None
 
+    # Figure out the length of the packet
     seek_point = 0
     seek_multiplier = 1
     packet_length = 0
@@ -58,15 +58,18 @@ def parse_next_frame(data):
         if seek_multiplier > 128 * 128 * 128:
             raise ParseFailure()
 
+    # Do we have the whole packet?
     if len(data) < 1 + seek_point + packet_length:
         # Not the whole packet yet
         return None, data
 
+    # Build the frame
     frame = Frame(
         packet_type=PacketType(packet_type),
-        flags = (flag1, flag2, flag3, flag4),
-        body = data[1 + seek_point:packet_length])
+        flags=(flag1, flag2, flag3, flag4),
+        body=data[1 + seek_point:packet_length])
 
+    # Return the data we didn't consume
     data = data[1 + seek_point + packet_length:]
 
     return frame, data
