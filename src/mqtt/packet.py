@@ -87,8 +87,6 @@ class PUBLISH(object):
     @classmethod
     def _parse(cls, flags, body):
 
-        print(body)
-
         if flags[1] and flags[2]:
             # A PUBLISH Packet MUST NOT have both QoS bits set to 1. If a
             # Server or Client receives a PUBLISH Packet which has both QoS
@@ -96,7 +94,9 @@ class PUBLISH(object):
             # [MQTT-3.3.1-4].
             raise ParseFailure()
 
-        dup, qos, retain = bitstruct.unpack("p4b1u2b1", bitstruct.pack('p4b1b1b1b1', *flags))
+        # Repack and unpack the flags
+        dup, qos, retain = bitstruct.unpack(
+            "p4b1u2b1", bitstruct.pack('p4b1b1b1b1', *flags))
 
         if qos not in [0, 1, 2]:
             raise ParseFailure()
@@ -104,7 +104,7 @@ class PUBLISH(object):
         topic, body = parse_utf8(body)
 
         if qos != 0:
-            packet_identifier = bitstruct.unpack('u16', body[0:2])
+            packet_identifier, = bitstruct.unpack('u16', body[0:2])
             payload = body[2:]
         else:
             packet_identifier = None

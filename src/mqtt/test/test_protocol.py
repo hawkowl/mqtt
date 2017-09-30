@@ -7,6 +7,7 @@ from .examples import (
     CONNECT_PACKET,
     LONG_PACKET,
     SIMPLE_PUBLISH,
+    PUBLISH_QOS_1
 )
 
 class StreamParsingTests(TestCase):
@@ -64,6 +65,19 @@ class PacketParsingTests(TestCase):
         self.assertEqual(publish.packet_identifier, None)
         self.assertEqual(publish.duplicate, False)
         self.assertEqual(publish.qos, 0)
+        self.assertEqual(publish.retain, False)
+        self.assertEqual(publish.topic, "mqttexample")
+        self.assertEqual(publish.payload, b"test!")
+
+    def test_publish_packet_qos_1(self):
+
+        packets, remaining = parse(PUBLISH_QOS_1)
+        self.assertEqual(remaining, b'')
+        publish = packets[0].packet
+
+        self.assertEqual(publish.packet_identifier, 1)
+        self.assertEqual(publish.duplicate, False)
+        self.assertEqual(publish.qos, 1)
         self.assertEqual(publish.retain, False)
         self.assertEqual(publish.topic, "mqttexample")
         self.assertEqual(publish.payload, b"test!")
