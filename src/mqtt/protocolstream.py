@@ -67,7 +67,7 @@ def parse_next_frame(data):
     frame = Frame(
         packet_type=PacketType(packet_type),
         flags=(flag1, flag2, flag3, flag4),
-        body=data[1 + seek_point:packet_length])
+        body=data[1 + seek_point:packet_length + 1 + seek_point])
 
     # Return the data we didn't consume
     data = data[1 + seek_point + packet_length:]

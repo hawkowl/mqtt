@@ -11,6 +11,18 @@ class ParseFailure(ValueError):
 class PacketType(IntEnum):
     CONNECT = 1
     CONNACK = 2
+    PUBLISH = 3
+    PUBACK = 4
+    PUBREC = 5
+    PUBREL = 6
+    PUBCOMP = 7
+    SUBSCRIBE = 8
+    SUBACK = 9
+    UNSUBSCRIBE = 10
+    UNSUBACK = 11
+    PINGREQ = 12
+    PINGRESP = 13
+    DISCONNECT = 14
 
 
 def parse_utf8(data):
@@ -18,7 +30,7 @@ def parse_utf8(data):
     Parse a length-prefixed UTF-8 string and return the string and unused data.
     """
     length, = bitstruct.unpack('u16', data[0:2])
-    string = data[2:length].decode('utf8')
+    string = data[2:length+2].decode('utf8')
     return string, data[2 + length:]
 
 
@@ -62,9 +74,55 @@ class CONNECT(object):
         return cls(keep_alive=keep_alive,
                    client_identifier=client_identifier)
 
+@attr.s
+class PUBLISH(object):
+
+    duplicate = attr.ib()
+    qos = attr.ib()
+    retain = attr.ib()
+    topic = attr.ib()
+    payload = attr.ib()
+    packet_identifier = attr.ib()
+
+    @classmethod
+    def _parse(cls, flags, body):
+
+        print(body)
+
+        if flags[1] and flags[2]:
+            # A PUBLISH Packet MUST NOT have both QoS bits set to 1. If a
+            # Server or Client receives a PUBLISH Packet which has both QoS
+            # bits set to 1 it MUST close the Network Connection
+            # [MQTT-3.3.1-4].
+            raise ParseFailure()
+
+        dup, qos, retain = bitstruct.unpack("p4b1u2b1", bitstruct.pack('p4b1b1b1b1', *flags))
+
+        if qos not in [0, 1, 2]:
+            raise ParseFailure()
+
+        topic, body = parse_utf8(body)
+
+        if qos != 0:
+            packet_identifier = bitstruct.unpack('u16', body[0:2])
+            payload = body[2:]
+        else:
+            packet_identifier = None
+            payload = body
+
+        return cls(
+            duplicate=dup,
+            qos=qos,
+            retain=retain,
+            topic=topic,
+            payload=payload,
+            packet_identifier=packet_identifier
+        )
+
 
 PacketClass = {
-    PacketType.CONNECT: CONNECT
+    PacketType.CONNECT: CONNECT,
+    PacketType.PUBLISH: PUBLISH,
 }
 
 

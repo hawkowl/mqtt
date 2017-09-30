@@ -3,16 +3,11 @@ from unittest import TestCase
 from mqtt.protocolstream import parse
 from mqtt.packet import PacketType
 
-
-CONNECT_PACKET = bytes((
-    0x10, 0x25, 0x00, 0x06, 0x4d, 0x51, 0x49, 0x73,
-    0x64, 0x70, 0x03, 0x02, 0x00, 0x3c, 0x00, 0x17,
-    0x6d, 0x6f, 0x73, 0x71, 0x73, 0x75, 0x62, 0x7c,
-    0x31, 0x38, 0x32, 0x31, 0x35, 0x2d, 0x6d, 0x65,
-    0x64, 0x69, 0x6e, 0x61, 0x2e, 0x6c, 0x61))
-
-LONG_PACKET =  bytes((0x10, 0x80, 0x01) + (0x00,) * 128)
-
+from .examples import (
+    CONNECT_PACKET,
+    LONG_PACKET,
+    SIMPLE_PUBLISH,
+)
 
 class StreamParsingTests(TestCase):
 
@@ -40,6 +35,15 @@ class StreamParsingTests(TestCase):
         self.assertEqual(packets[0].packet_type, PacketType.CONNECT)
         self.assertEqual(remaining, b'')
 
+    def test_multiple_packets(self):
+
+        packets, remaining = parse(CONNECT_PACKET + SIMPLE_PUBLISH)
+
+        self.assertEqual(len(packets), 2)
+        self.assertEqual(packets[0].packet_type, PacketType.CONNECT)
+        self.assertEqual(packets[1].packet_type, PacketType.PUBLISH)
+        self.assertEqual(remaining, b'')
+
 
 class PacketParsingTests(TestCase):
 
@@ -49,4 +53,17 @@ class PacketParsingTests(TestCase):
         connect = packets[0].packet
 
         self.assertEqual(connect.keep_alive, 60)
-        self.assertEqual(connect.client_identifier, "mosqsub|18215-medina.")
+        self.assertEqual(connect.client_identifier, "mosqsub|18215-medina.la")
+
+    def test_publish_packet_basic(self):
+
+        packets, remaining = parse(SIMPLE_PUBLISH)
+        self.assertEqual(remaining, b'')
+        publish = packets[0].packet
+
+        self.assertEqual(publish.packet_identifier, None)
+        self.assertEqual(publish.duplicate, False)
+        self.assertEqual(publish.qos, 0)
+        self.assertEqual(publish.retain, False)
+        self.assertEqual(publish.topic, "mqttexample")
+        self.assertEqual(publish.payload, b"test!")
