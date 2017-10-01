@@ -7,7 +7,8 @@ from .examples import (
     CONNECT_PACKET,
     LONG_PACKET,
     SIMPLE_PUBLISH,
-    PUBLISH_QOS_1
+    PUBLISH_QOS_1,
+    PUBACK
 )
 
 class StreamParsingTests(TestCase):
@@ -81,3 +82,12 @@ class PacketParsingTests(TestCase):
         self.assertEqual(publish.retain, False)
         self.assertEqual(publish.topic, "mqttexample")
         self.assertEqual(publish.payload, b"test!")
+
+
+    def test_puback(self):
+
+        packets, remaining = parse(PUBACK)
+        self.assertEqual(remaining, b'')
+        puback = packets[0].packet
+
+        self.assertEqual(puback.packet_identifier, 1)

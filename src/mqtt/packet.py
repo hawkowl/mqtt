@@ -120,9 +120,27 @@ class PUBLISH(object):
         )
 
 
+@attr.s
+class PUBACK(object):
+
+    packet_identifier = attr.ib()
+
+    @classmethod
+    def _parse(cls, flags, body):
+
+        # Needs to be 2 bytes long
+        if not len(body) == 2:
+            raise ParseFailure()
+
+        packet_identifier, = bitstruct.unpack('u16', body)
+
+        return cls(packet_identifier=packet_identifier)
+
+
 PacketClass = {
     PacketType.CONNECT: CONNECT,
     PacketType.PUBLISH: PUBLISH,
+    PacketType.PUBACK: PUBACK,
 }
 
 
