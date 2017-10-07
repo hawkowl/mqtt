@@ -25,6 +25,15 @@ class PacketType(IntEnum):
     DISCONNECT = 14
 
 
+class ConnectReturnCodes(IntEnum):
+    ACCEPTED = 0
+    UNACCEPTABLE_PROTOCOL = 1
+    IDENTIFIER_REJECTED = 2
+    SERVER_UNAVAILABLE = 3
+    BAD_USER_OR_PASSWORD = 4
+    NOT_AUTHORIZED = 5
+
+
 def parse_utf8(data):
     """
     Parse a length-prefixed UTF-8 string and return the string and unused data.
@@ -73,6 +82,35 @@ class CONNECT(object):
 
         return cls(keep_alive=keep_alive,
                    client_identifier=client_identifier)
+
+
+@attr.s
+class CONNACK(object):
+
+    session_present = attr.ib()
+    return_code = attr.ib()
+
+    @classmethod
+    def _parse(cls, flags, body):
+
+        if not flags == (False, False, False, False):
+            raise ParseFailure()
+
+        if not len(body) == 2:
+            raise ParseFailure()
+
+        reserved, session_present, ret_code = bitstruct.unpack('u7b1u8', body)
+
+        if reserved != 0:
+            # Byte 1 is the "Connect Acknowledge Flags". Bits 7-1 are reserved
+            # and MUST be set to 0.
+            raise ParseFailure()
+
+        return cls(
+            session_present=session_present,
+            return_code=ConnectReturnCodes(ret_code)
+        )
+
 
 @attr.s
 class PUBLISH(object):
@@ -139,6 +177,7 @@ class PUBACK(object):
 
 PacketClass = {
     PacketType.CONNECT: CONNECT,
+    PacketType.CONNACK: CONNACK,
     PacketType.PUBLISH: PUBLISH,
     PacketType.PUBACK: PUBACK,
 }
