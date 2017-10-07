@@ -1,7 +1,7 @@
 from unittest import TestCase
 
 from mqtt.protocolstream import parse
-from mqtt.packet import PacketType, ConnectReturnCodes
+from mqtt.packet import PacketType, ConnectReturnCodes, PacketClass
 
 from .examples import (
     CONNECT_PACKET,
@@ -9,7 +9,9 @@ from .examples import (
     LONG_PACKET,
     SIMPLE_PUBLISH,
     PUBLISH_QOS_1,
-    PUBACK
+    PUBACK,
+    PINGREQ,
+    PINGRESP,
 )
 
 class StreamParsingTests(TestCase):
@@ -56,6 +58,7 @@ class PacketParsingTests(TestCase):
         self.assertEqual(remaining, b'')
         connect = packets[0].packet
 
+        self.assertIsInstance(connect, PacketClass[PacketType.CONNECT])
         self.assertEqual(connect.keep_alive, 60)
         self.assertEqual(connect.client_identifier, "mosqsub|18215-medina.la")
 
@@ -65,6 +68,7 @@ class PacketParsingTests(TestCase):
         self.assertEqual(remaining, b'')
         connack = packets[0].packet
 
+        self.assertIsInstance(connack, PacketClass[PacketType.CONNACK])
         self.assertEqual(connack.session_present, False)
         self.assertEqual(connack.return_code, ConnectReturnCodes.ACCEPTED)
 
@@ -75,6 +79,7 @@ class PacketParsingTests(TestCase):
         self.assertEqual(remaining, b'')
         publish = packets[0].packet
 
+        self.assertIsInstance(publish, PacketClass[PacketType.PUBLISH])
         self.assertEqual(publish.packet_identifier, None)
         self.assertEqual(publish.duplicate, False)
         self.assertEqual(publish.qos, 0)
@@ -88,6 +93,7 @@ class PacketParsingTests(TestCase):
         self.assertEqual(remaining, b'')
         publish = packets[0].packet
 
+        self.assertIsInstance(publish, PacketClass[PacketType.PUBLISH])
         self.assertEqual(publish.packet_identifier, 1)
         self.assertEqual(publish.duplicate, False)
         self.assertEqual(publish.qos, 1)
@@ -95,11 +101,27 @@ class PacketParsingTests(TestCase):
         self.assertEqual(publish.topic, "mqttexample")
         self.assertEqual(publish.payload, b"test!")
 
-
     def test_puback(self):
 
         packets, remaining = parse(PUBACK)
         self.assertEqual(remaining, b'')
         puback = packets[0].packet
 
+        self.assertIsInstance(puback, PacketClass[PacketType.PUBACK])
         self.assertEqual(puback.packet_identifier, 1)
+
+    def test_pingreq(self):
+
+        packets, remaining = parse(PINGREQ)
+        self.assertEqual(remaining, b'')
+        pkt = packets[0].packet
+
+        self.assertIsInstance(pkt, PacketClass[PacketType.PINGREQ])
+
+    def test_pingresp(self):
+
+        packets, remaining = parse(PINGRESP)
+        self.assertEqual(remaining, b'')
+        pkt = packets[0].packet
+
+        self.assertIsInstance(pkt, PacketClass[PacketType.PINGRESP])

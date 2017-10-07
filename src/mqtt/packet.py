@@ -175,11 +175,45 @@ class PUBACK(object):
         return cls(packet_identifier=packet_identifier)
 
 
+@attr.s
+class PINGREQ(object):
+
+    @classmethod
+    def _parse(cls, flags, body):
+
+        if flags != (False, False, False, False):
+            raise ParseFailure()
+
+        # No body
+        if not len(body) == 0:
+            raise ParseFailure()
+
+        return cls()
+
+
+@attr.s
+class PINGRESP(object):
+
+    @classmethod
+    def _parse(cls, flags, body):
+
+        if flags != (False, False, False, False):
+            raise ParseFailure()
+
+        # No body
+        if not len(body) == 0:
+            raise ParseFailure()
+
+        return cls()
+
+
 PacketClass = {
     PacketType.CONNECT: CONNECT,
     PacketType.CONNACK: CONNACK,
     PacketType.PUBLISH: PUBLISH,
     PacketType.PUBACK: PUBACK,
+    PacketType.PINGREQ: PINGREQ,
+    PacketType.PINGRESP: PINGRESP,
 }
 
 
